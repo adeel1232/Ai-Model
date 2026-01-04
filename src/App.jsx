@@ -145,7 +145,7 @@ function App() {
 
           {loading && (
             <div style={{ ...styles.message, background: "#2b2b2bcc" }}>
-              Adeel Typing…
+               Typing…
             </div>
           )}
 
