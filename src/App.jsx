@@ -13,8 +13,7 @@ import {
   FiMenu,
   FiX,
   FiPlus,
-  FiRefreshCw,
-  FiChevronLeft
+  FiRefreshCw
 } from "react-icons/fi";
 import { 
   BsStars, 
@@ -23,6 +22,7 @@ import {
   BsCheck2 
 } from "react-icons/bs";
 import { MdAutoAwesome } from "react-icons/md";
+import "./App.css"; // CSS file import
 
 function App() {
   // State management
@@ -36,7 +36,7 @@ function App() {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [model, setModel] = useState("gpt-3.5-turbo");
-  const [temperature, setTemperature] = useState(0.7);
+
   const [copiedIndex, setCopiedIndex] = useState(null);
   const [editingIndex, setEditingIndex] = useState(null);
   const [editText, setEditText] = useState("");
@@ -207,7 +207,7 @@ function App() {
       const res = await axios.post("http://localhost:8080/chat", {
         prompt: input,
         model: model,
-        temperature: temperature,
+       
         conversationHistory: updatedMessages.slice(-10).map(msg => ({
           role: msg.role,
           content: msg.text
@@ -536,6 +536,7 @@ function App() {
             {conversations.map(conversation => (
               <div
                 key={conversation.id}
+                className="conversation-item"
                 style={{
                   ...styles.conversationItem,
                   background: currentConversationId === conversation.id 
@@ -633,6 +634,7 @@ function App() {
               
               <div style={styles.headerRight}>
                 <button 
+                  className="icon-button"
                   style={styles.iconButton}
                   onClick={() => setDarkMode(!darkMode)}
                   title={darkMode ? "Light mode" : "Dark mode"}
@@ -640,6 +642,7 @@ function App() {
                   {darkMode ? <FiSun /> : <FiMoon />}
                 </button>
                 <button 
+                  className="icon-button"
                   style={styles.iconButton}
                   onClick={regenerateResponse}
                   disabled={loading || messages.length < 2}
@@ -653,62 +656,43 @@ function App() {
         </div>
 
         {/* Chat messages */}
-        <div style={styles.chatContainer}>
+        <div className="chat-container" style={styles.chatContainer}>
           {messages.map((msg, i) => (
             <div
               key={i}
+              className="message-wrapper"
               style={{
                 ...styles.messageWrapper,
                 background: msg.role === 'assistant' 
                   ? (darkMode ? '#444654' : '#f7f7f8') 
-                  : 'transparent',
-                padding: isMobile ? '12px 15px' : '20px 0'
+                  : 'transparent'
               }}
             >
-              <div style={{
-                ...styles.messageContainer,
-                maxWidth: isMobile ? '100%' : '48rem',
-                gap: isMobile ? '12px' : '20px'
-              }}>
+              <div className="message-container" style={styles.messageContainer}>
                 <div style={styles.avatar}>
                   {msg.role === 'user' ? (
-                    <div style={{
+                    <div className="avatar-icon" style={{
                       ...styles.avatarIcon,
-                      background: '#0b5cff',
-                      width: isMobile ? '28px' : '36px',
-                      height: isMobile ? '28px' : '36px',
-                      fontSize: isMobile ? '12px' : '14px'
+                      background: '#0b5cff'
                     }}>U</div>
                   ) : (
-                    <div style={{
+                    <div className="avatar-icon" style={{
                       ...styles.avatarIcon,
-                      background: '#10A37F',
-                      width: isMobile ? '28px' : '36px',
-                      height: isMobile ? '28px' : '36px'
+                      background: '#10A37F'
                     }}>
-                      <BsRobot size={isMobile ? 14 : 16} />
+                      <BsRobot />
                     </div>
                   )}
                 </div>
                 
                 <div style={styles.messageContent}>
-                  <div style={{
-                    fontSize: isMobile ? '14px' : '16px',
-                    lineHeight: '1.6'
-                  }}>
+                  <div className="message-content" style={styles.messageText}>
                     {renderMessageContent(msg.text, i)}
                   </div>
                   
-                  {/* Message actions - Always visible on mobile */}
-                  <div style={{
-                    ...styles.messageActions,
-                    opacity: isMobile ? 1 : 0,
-                    marginTop: isMobile ? '8px' : '12px'
-                  }}>
-                    <span style={{
-                      ...styles.timestamp,
-                      fontSize: isMobile ? '10px' : '12px'
-                    }}>
+                  {/* Message actions */}
+                  <div className="message-actions" style={styles.messageActions}>
+                    <span className="timestamp" style={styles.timestamp}>
                       {new Date(msg.timestamp).toLocaleTimeString([], { 
                         hour: '2-digit', 
                         minute: '2-digit' 
@@ -718,31 +702,34 @@ function App() {
                     
                     <div style={styles.actionButtons}>
                       <button
+                        className="action-button"
                         style={styles.actionButton}
                         onClick={() => speakText(msg.text)}
                         title="Read aloud"
                       >
-                        <FiVolume2 size={isMobile ? 14 : 16} />
+                        <FiVolume2 />
                       </button>
                       
                       {msg.role === 'user' && (
                         <button
+                          className="action-button"
                           style={styles.actionButton}
                           onClick={() => startEdit(i)}
                           title="Edit message"
                         >
-                          <FiEdit2 size={isMobile ? 14 : 16} />
+                          <FiEdit2 />
                         </button>
                       )}
                       
                       <button
+                        className="action-button"
                         style={styles.actionButton}
                         onClick={() => copyMessage(msg.text, i)}
                         title="Copy message"
                       >
                         {copiedIndex === i ? 
-                          <BsCheck2 size={isMobile ? 14 : 16} /> : 
-                          <FiCopy size={isMobile ? 14 : 16} />
+                          <BsCheck2 /> : 
+                          <FiCopy />
                         }
                       </button>
                     </div>
@@ -753,25 +740,19 @@ function App() {
           ))}
           
           {loading && (
-            <div style={{
-              ...styles.typingIndicator,
-              maxWidth: isMobile ? '100%' : '48rem',
-              padding: isMobile ? '15px' : '20px 0'
-            }}>
+            <div style={styles.typingIndicator}>
               <div style={styles.avatar}>
-                <div style={{
+                <div className="avatar-icon" style={{
                   ...styles.avatarIcon,
-                  background: '#10A37F',
-                  width: isMobile ? '28px' : '36px',
-                  height: isMobile ? '28px' : '36px'
+                  background: '#10A37F'
                 }}>
-                  <BsRobot size={isMobile ? 14 : 16} />
+                  <BsRobot />
                 </div>
               </div>
               <div style={styles.typingDots}>
-                <div style={styles.typingDot} />
-                <div style={styles.typingDot} />
-                <div style={styles.typingDot} />
+                <div className="typing-dot" style={styles.typingDot} />
+                <div className="typing-dot" style={styles.typingDot} />
+                <div className="typing-dot" style={styles.typingDot} />
               </div>
             </div>
           )}
@@ -780,14 +761,12 @@ function App() {
         </div>
 
         {/* Input area */}
-        <div style={{
-          ...styles.inputWrapper,
-          padding: isMobile ? '15px' : '20px'
-        }}>
+        <div className="input-wrapper" style={styles.inputWrapper}>
           <div style={styles.inputArea}>
             <div style={styles.inputControls}>
               {!isMobile && (
                 <button
+                  className="voice-button"
                   style={{
                     ...styles.voiceButton,
                     background: isListening ? '#ff4444' : 'transparent'
@@ -801,16 +780,12 @@ function App() {
               
               <textarea
                 ref={textAreaRef}
+                className="textarea"
                 style={{
                   ...styles.textarea,
                   background: darkMode ? '#40414f' : '#ffffff',
                   color: darkMode ? '#ffffff' : '#000000',
-                  border: `1px solid ${darkMode ? '#565869' : '#c5c5d2'}`,
-                  fontSize: isMobile ? '14px' : '16px',
-                  padding: isMobile ? '10px' : '12px',
-                  borderRadius: isMobile ? '20px' : '12px',
-                  minHeight: isMobile ? '40px' : '24px',
-                  maxHeight: '120px'
+                  border: `1px solid ${darkMode ? '#565869' : '#c5c5d2'}`
                 }}
                 placeholder="Message Adeel Agent..."
                 value={input}
@@ -827,6 +802,7 @@ function App() {
               <div style={styles.sendButtonContainer}>
                 {isMobile && (
                   <button
+                    className="mobile-voice-button"
                     style={{
                       ...styles.mobileVoiceButton,
                       background: isListening ? '#ff4444' : 'transparent'
@@ -839,35 +815,27 @@ function App() {
                 )}
                 
                 <button
+                  className="send-button"
                   style={{
                     ...styles.sendButton,
                     opacity: input.trim() ? 1 : 0.5,
-                    cursor: input.trim() ? 'pointer' : 'default',
-                    width: isMobile ? '40px' : '48px',
-                    height: isMobile ? '40px' : '48px',
-                    padding: isMobile ? '8px' : '12px'
+                    cursor: input.trim() ? 'pointer' : 'default'
                   }}
                   onClick={sendMessage}
                   disabled={!input.trim() || loading}
                 >
                   {loading ? (
-                    <div style={{
-                      ...styles.spinner,
-                      width: isMobile ? '16px' : '20px',
-                      height: isMobile ? '16px' : '20px'
-                    }} />
+                    <div className="spinner" style={styles.spinner} />
                   ) : (
-                    <FiSend size={isMobile ? 18 : 20} />
+                    <FiSend />
                   )}
                 </button>
               </div>
             </div>
             
             {!isMobile && (
-              <div style={styles.inputFooter}>
-                <span style={styles.disclaimer}>
-                  Adeel Agent can make mistakes. Consider checking important information.
-                </span>
+              <div className="input-footer" style={styles.inputFooter}>
+                
               </div>
             )}
           </div>
@@ -877,7 +845,7 @@ function App() {
   );
 }
 
-// Responsive Styles
+// Simplified inline styles without media queries
 const styles = {
   container: {
     display: 'flex',
@@ -1018,9 +986,6 @@ const styles = {
     width: '260px',
     display: 'flex',
     flexDirection: 'column',
-    '@media (max-width: 768px)': {
-      display: 'none',
-    },
   },
   sidebarHeader: {
     padding: '16px',
@@ -1065,10 +1030,6 @@ const styles = {
     cursor: 'pointer',
     marginBottom: '4px',
     fontSize: '14px',
-    transition: 'background 0.2s',
-    '&:hover': {
-      background: '#2d2d2d',
-    },
   },
   conversationTitle: {
     flex: 1,
@@ -1215,78 +1176,54 @@ const styles = {
     fontSize: '18px',
     padding: '8px',
     borderRadius: '6px',
-    transition: 'background 0.2s',
-    '&:hover': {
-      background: 'rgba(255,255,255,0.1)',
-    },
   },
   chatContainer: {
     flex: 1,
     overflowY: 'auto',
     WebkitOverflowScrolling: 'touch',
-    '@media (max-width: 768px)': {
-      padding: '10px 15px',
-    },
-    '@media (min-width: 769px)': {
-      padding: '20px',
-    },
   },
   messageWrapper: {
-    '@media (max-width: 768px)': {
-      padding: '12px 0',
-    },
-    '@media (min-width: 769px)': {
-      padding: '20px 0',
-    },
-    '&:hover .messageActions': {
-      opacity: 1,
-    },
+    padding: '20px 0',
   },
   messageContainer: {
     margin: '0 auto',
     display: 'flex',
-    '@media (max-width: 768px)': {
-      gap: '12px',
-      maxWidth: '100%',
-    },
-    '@media (min-width: 769px)': {
-      gap: '20px',
-      maxWidth: '48rem',
-    },
+    gap: '20px',
+    maxWidth: '48rem',
   },
   avatar: {
     flexShrink: 0,
   },
   avatarIcon: {
+    width: '36px',
+    height: '36px',
     borderRadius: '4px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     color: 'white',
+    fontSize: '14px',
     fontWeight: 'bold',
   },
   messageContent: {
     flex: 1,
     minWidth: 0,
   },
+  messageText: {
+    fontSize: '16px',
+    lineHeight: '1.6',
+  },
   messageActions: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginTop: '12px',
+    opacity: 0,
     transition: 'opacity 0.2s',
-    '@media (max-width: 768px)': {
-      opacity: 1,
-      marginTop: '8px',
-    },
   },
   timestamp: {
+    fontSize: '12px',
     opacity: 0.6,
-    '@media (max-width: 768px)': {
-      fontSize: '10px',
-    },
-    '@media (min-width: 769px)': {
-      fontSize: '12px',
-    },
   },
   actionButtons: {
     display: 'flex',
@@ -1297,16 +1234,10 @@ const styles = {
     border: 'none',
     color: 'inherit',
     cursor: 'pointer',
+    fontSize: '16px',
     padding: '4px',
     borderRadius: '4px',
     opacity: 0.6,
-    transition: 'opacity 0.2s',
-    '&:hover': {
-      opacity: 1,
-    },
-    '@media (max-width: 768px)': {
-      opacity: 0.8,
-    },
   },
   editContainer: {
     marginTop: '8px',
@@ -1356,17 +1287,10 @@ const styles = {
   typingIndicator: {
     display: 'flex',
     alignItems: 'center',
+    gap: '20px',
     margin: '0 auto',
-    '@media (max-width: 768px)': {
-      gap: '15px',
-      maxWidth: '100%',
-      padding: '15px 0',
-    },
-    '@media (min-width: 769px)': {
-      gap: '20px',
-      maxWidth: '48rem',
-      padding: '20px 0',
-    },
+    maxWidth: '48rem',
+    padding: '20px 0',
   },
   typingDots: {
     display: 'flex',
@@ -1378,28 +1302,15 @@ const styles = {
     borderRadius: '50%',
     background: '#10A37F',
     animation: 'typing 1.4s infinite ease-in-out',
-    '&:nth-child(2)': {
-      animationDelay: '0.2s',
-    },
-    '&:nth-child(3)': {
-      animationDelay: '0.4s',
-    },
   },
   inputWrapper: {
     borderTop: '1px solid #4d4d4f',
     flexShrink: 0,
-    '@media (max-width: 768px)': {
-      padding: '15px',
-    },
-    '@media (min-width: 769px)': {
-      padding: '20px',
-    },
+    padding: '20px',
   },
   inputArea: {
     margin: '0 auto',
-    '@media (min-width: 769px)': {
-      maxWidth: '48rem',
-    },
+    maxWidth: '48rem',
   },
   inputControls: {
     display: 'flex',
@@ -1415,9 +1326,6 @@ const styles = {
     padding: '12px',
     borderRadius: '6px',
     flexShrink: 0,
-    '@media (max-width: 768px)': {
-      display: 'none',
-    },
   },
   mobileVoiceButton: {
     background: 'transparent',
@@ -1428,9 +1336,6 @@ const styles = {
     padding: '8px',
     borderRadius: '50%',
     flexShrink: 0,
-    '@media (min-width: 769px)': {
-      display: 'none',
-    },
   },
   textarea: {
     flex: 1,
@@ -1438,14 +1343,16 @@ const styles = {
     outline: 'none',
     fontFamily: 'inherit',
     lineHeight: '1.6',
+    padding: '12px',
+    borderRadius: '12px',
+    fontSize: '16px',
+    minHeight: '24px',
+    maxHeight: '120px',
   },
   sendButtonContainer: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    '@media (max-width: 768px)': {
-      gap: '4px',
-    },
   },
   sendButton: {
     background: 'linear-gradient(135deg, #0b5cff 0%, #0b5cffcc 100%)',
@@ -1456,10 +1363,14 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    transition: 'opacity 0.2s',
-    flexShrink: 0,
+    fontSize: '20px',
+    padding: '12px',
+    width: '48px',
+    height: '48px',
   },
   spinner: {
+    width: '20px',
+    height: '20px',
     border: '2px solid rgba(255,255,255,0.3)',
     borderTop: '2px solid white',
     borderRadius: '50%',
@@ -1468,34 +1379,11 @@ const styles = {
   inputFooter: {
     marginTop: '12px',
     textAlign: 'center',
-    '@media (max-width: 768px)': {
-      display: 'none',
-    },
   },
   disclaimer: {
     fontSize: '12px',
     opacity: 0.6,
   },
 };
-
-// Add keyframes for animations
-const styleSheet = document.styleSheets[0];
-styleSheet.insertRule(`
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`, styleSheet.cssRules.length);
-styleSheet.insertRule(`
-  @keyframes typing {
-    0%, 60%, 100% { transform: translateY(0); opacity: 0.6; }
-    30% { transform: translateY(-4px); opacity: 1; }
-  }
-`, styleSheet.cssRules.length);
-styleSheet.insertRule(`
-  .conversation-item:hover .delete-conversation {
-    opacity: 1;
-  }
-`, styleSheet.cssRules.length);
 
 export default App;
