@@ -1,31 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import { 
-  FiCopy, 
-  FiEdit2, 
-  FiVolume2, 
-  FiSend, 
-  FiMic, 
-  FiMicOff,
-  FiTrash2,
-  FiMoon,
-  FiSun,
-  FiMenu,
-  FiX,
-  FiPlus,
-  FiRefreshCw
-} from "react-icons/fi";
-import { 
-  BsStars, 
-  BsLightningFill, 
-  BsRobot,
-  BsCheck2 
-} from "react-icons/bs";
+import { FiCopy, FiEdit2, FiVolume2, FiSend, FiMic, FiMicOff, FiTrash2, FiMoon, FiSun, FiMenu, FiX, FiPlus, FiRefreshCw } from "react-icons/fi";
+import { BsStars, BsLightningFill, BsRobot, BsCheck2 } from "react-icons/bs";
 import { MdAutoAwesome } from "react-icons/md";
-import "./App.css"; // CSS file import
+import "./App.css";
 
 function App() {
-  // State management
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,7 +16,6 @@ function App() {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [model, setModel] = useState("gpt-3.5-turbo");
-
   const [copiedIndex, setCopiedIndex] = useState(null);
   const [editingIndex, setEditingIndex] = useState(null);
   const [editText, setEditText] = useState("");
@@ -46,156 +25,144 @@ function App() {
   const chatEndRef = useRef(null);
   const textAreaRef = useRef(null);
 
-  // Check if mobile on mount and resize
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Models configuration
   const models = [
     { id: "gpt-3.5-turbo", name: "GPT-3.5", icon: <BsLightningFill />, color: "#10A37F" },
     { id: "gpt-4", name: "GPT-4", icon: <BsStars />, color: "#AB68FF" },
     { id: "gpt-4-turbo", name: "GPT-4 Turbo", icon: <MdAutoAwesome />, color: "#FF6B35" },
   ];
 
-  // Initialize speech recognition
+  // Check mobile
   useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Speech recognition
+  useEffect(() => {
+    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = 'en-US';
-      
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInput(transcript);
-        setIsListening(false);
+      recognition.lang = "en-US";
+      recognition.onresult = (e) => { 
+        const transcript = e.results[0][0].transcript;
+        setInput(transcript); 
+        setIsListening(false); 
       };
-      
-      recognition.onerror = () => {
-        setIsListening(false);
-      };
-      
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-      
+      recognition.onerror = () => setIsListening(false);
+      recognition.onend = () => setIsListening(false);
       setSpeechRecognition(recognition);
     }
   }, []);
 
   // Initial AI greeting
   useEffect(() => {
-    const greetingMessage = {
-      role: "assistant",
-      text: "Hello! I'm Adeel Agent AI Assistant. How can I help you today?",
-      timestamp: new Date().toISOString(),
-      id: Date.now()
+    const greetingMessage = { 
+      role: "assistant", 
+      text: "Hello! I'm Adeel Agent AI Assistant. How can I help you today?", 
+      timestamp: new Date().toISOString(), 
+      id: Date.now() 
     };
-    
-    const newConversation = {
-      id: Date.now(),
-      title: "New Chat",
-      messages: [greetingMessage],
-      createdAt: new Date().toISOString(),
-      model: model
+    const newConversation = { 
+      id: Date.now(), 
+      title: "New Chat", 
+      messages: [greetingMessage], 
+      createdAt: new Date().toISOString(), 
+      model: "gpt-3.5-turbo" 
     };
-    
     setConversations([newConversation]);
     setMessages([greetingMessage]);
     setCurrentConversationId(newConversation.id);
   }, []);
 
-  // Auto scroll to bottom
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // Auto-scroll
+  useEffect(() => { 
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); 
   }, [messages, loading]);
 
   // Auto-resize textarea
-  useEffect(() => {
-    if (textAreaRef.current) {
-      textAreaRef.current.style.height = "auto";
-      textAreaRef.current.style.height = Math.min(textAreaRef.current.scrollHeight, 120) + "px";
-    }
+  useEffect(() => { 
+    if (textAreaRef.current) { 
+      textAreaRef.current.style.height = "auto"; 
+      textAreaRef.current.style.height = Math.min(textAreaRef.current.scrollHeight, 120) + "px"; 
+    } 
   }, [input]);
 
-  // Start/stop voice input
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") sendMessage();
+      if (e.key === "Escape") { 
+        setEditingIndex(null); 
+        setShowMobileMenu(false); 
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [input, messages]);
+
   const toggleVoiceInput = () => {
     if (!speechRecognition) {
       alert("Voice input is not supported in your browser");
       return;
     }
-    
-    if (isListening) {
-      speechRecognition.stop();
-      setIsListening(false);
-    } else {
-      speechRecognition.start();
-      setIsListening(true);
+    if (isListening) { 
+      speechRecognition.stop(); 
+      setIsListening(false); 
+    } else { 
+      speechRecognition.start(); 
+      setIsListening(true); 
     }
   };
 
-  // Create new chat
   const createNewChat = () => {
-    const newConversation = {
-      id: Date.now(),
-      title: "New Chat",
-      messages: [],
-      createdAt: new Date().toISOString(),
-      model: model
+    const newConversation = { 
+      id: Date.now(), 
+      title: "New Chat", 
+      messages: [], 
+      createdAt: new Date().toISOString(), 
+      model 
     };
-    
-    const greetingMessage = {
-      role: "assistant",
-      text: "Hello! I'm Adeel Agent. What can I help you with?",
-      timestamp: new Date().toISOString(),
-      id: Date.now() + 1
+    const greetingMessage = { 
+      role: "assistant", 
+      text: "Hello! I'm Adeel Agent. What can I help you with?", 
+      timestamp: new Date().toISOString(), 
+      id: Date.now() + 1 
     };
-    
     newConversation.messages.push(greetingMessage);
     setConversations(prev => [newConversation, ...prev]);
     setMessages([greetingMessage]);
     setCurrentConversationId(newConversation.id);
     setInput("");
-    
-    if (isMobile) {
-      setShowMobileMenu(false);
-      setSidebarOpen(false);
+    if (isMobile) { 
+      setShowMobileMenu(false); 
+      setSidebarOpen(false); 
     }
   };
 
-  // Load conversation
   const loadConversation = (conversationId) => {
-    const conversation = conversations.find(c => c.id === conversationId);
-    if (conversation) {
-      setMessages(conversation.messages);
-      setCurrentConversationId(conversationId);
-      setModel(conversation.model);
-    }
-    
-    if (isMobile) {
-      setShowMobileMenu(false);
-      setSidebarOpen(false);
+    const conv = conversations.find(c => c.id === conversationId);
+    if (!conv) return;
+    setMessages(conv.messages);
+    setCurrentConversationId(conversationId);
+    setModel(conv.model);
+    if (isMobile) { 
+      setShowMobileMenu(false); 
+      setSidebarOpen(false); 
     }
   };
 
-  // Send message
   const sendMessage = async () => {
     if (!input.trim()) return;
-
-    const userMessage = {
-      role: "user",
-      text: input,
-      timestamp: new Date().toISOString(),
-      id: Date.now()
+    
+    const userMessage = { 
+      role: "user", 
+      text: input, 
+      timestamp: new Date().toISOString(), 
+      id: Date.now() 
     };
     
     const updatedMessages = [...messages, userMessage];
@@ -204,113 +171,103 @@ function App() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:8080/chat", {
-        prompt: input,
-        model: model,
-       
-        conversationHistory: updatedMessages.slice(-10).map(msg => ({
-          role: msg.role,
-          content: msg.text
-        }))
+      // یہاں آپ کے local IP address استعمال کریں
+      const backendUrl = `http://${window.location.hostname}:8080`;
+      const res = await axios.post(`${backendUrl}/chat`, { 
+        prompt: input, 
+        model, 
+        conversationHistory: updatedMessages.slice(-10).map(msg => ({ 
+          role: msg.role, 
+          content: msg.text 
+        })) 
       });
-
+      
       const reply = res.data.reply;
       await typeMessage(reply);
-      
-      // Update conversation
-      const aiMessage = {
-        role: "assistant",
-        text: reply,
-        timestamp: new Date().toISOString(),
-        id: Date.now() + 1
+
+      const aiMessage = { 
+        role: "assistant", 
+        text: reply, 
+        timestamp: new Date().toISOString(), 
+        id: Date.now() + 1 
       };
-      
       const finalMessages = [...updatedMessages, aiMessage];
-      
-      // Update conversation title if first user message
-      const conversationIndex = conversations.findIndex(c => c.id === currentConversationId);
-      if (conversationIndex !== -1) {
+
+      // Update conversation
+      const convIndex = conversations.findIndex(c => c.id === currentConversationId);
+      if (convIndex !== -1) {
         const updatedConversations = [...conversations];
-        if (updatedConversations[conversationIndex].messages.length === 1) {
-          updatedConversations[conversationIndex].title = input.substring(0, 20) + (input.length > 20 ? "..." : "");
+        if (updatedConversations[convIndex].messages.length === 1) {
+          updatedConversations[convIndex].title = input.substring(0, 20) + (input.length > 20 ? "..." : "");
         }
-        updatedConversations[conversationIndex].messages = finalMessages;
-        updatedConversations[conversationIndex].updatedAt = new Date().toISOString();
+        updatedConversations[convIndex].messages = finalMessages;
+        updatedConversations[convIndex].updatedAt = new Date().toISOString();
         setConversations(updatedConversations);
       }
-      
+
     } catch (err) {
       console.error("Error:", err);
-      const errorMessage = {
-        role: "assistant",
-        text: "Sorry, I encountered an error. Please try again.",
-        timestamp: new Date().toISOString(),
-        id: Date.now() + 1
+      const errorMessage = { 
+        role: "assistant", 
+        text: "Sorry, I encountered an error. Please check your connection and try again.", 
+        timestamp: new Date().toISOString(), 
+        id: Date.now() + 1 
       };
       setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setLoading(false);
+    } finally { 
+      setLoading(false); 
     }
   };
 
-  // Typing effect
   const typeMessage = (text) => {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       let index = 0;
-      const aiMessage = {
-        role: "assistant",
-        text: "",
-        timestamp: new Date().toISOString(),
-        id: Date.now()
+      const aiMessage = { 
+        role: "assistant", 
+        text: "", 
+        timestamp: new Date().toISOString(), 
+        id: Date.now() 
       };
-      
       setMessages(prev => [...prev, aiMessage]);
-
       const interval = setInterval(() => {
         index++;
-        setMessages(prev => {
-          const updated = [...prev];
-          updated[updated.length - 1] = {
-            ...aiMessage,
-            text: text.slice(0, index)
-          };
-          return updated;
+        setMessages(prev => { 
+          const updated = [...prev]; 
+          updated[updated.length - 1] = { ...aiMessage, text: text.slice(0, index) }; 
+          return updated; 
         });
-
-        if (index >= text.length) {
-          clearInterval(interval);
-          resolve();
+        if (index >= text.length) { 
+          clearInterval(interval); 
+          resolve(); 
         }
       }, 20);
     });
   };
 
-  // Regenerate response
   const regenerateResponse = async () => {
     if (messages.length < 2) return;
+    const lastUser = [...messages].reverse().find(m => m.role === "user");
+    if (!lastUser) return;
     
-    const lastUserMessage = messages.filter(m => m.role === "user").pop();
-    if (!lastUserMessage) return;
-    
-    setMessages(prev => prev.filter((_, i) => i !== prev.length - 1));
-    setInput(lastUserMessage.text);
+    // Remove last assistant response
+    setMessages(prev => prev.slice(0, -1));
+    setInput(lastUser.text);
     await sendMessage();
   };
 
-  // Edit message
-  const startEdit = (index) => {
-    setEditingIndex(index);
-    setEditText(messages[index].text);
+  const startEdit = (i) => { 
+    setEditingIndex(i); 
+    setEditText(messages[i].text); 
   };
-
+  
   const saveEdit = async () => {
     if (editingIndex === null) return;
-    
     const updatedMessages = [...messages];
     updatedMessages[editingIndex].text = editText;
     updatedMessages[editingIndex].edited = true;
     setMessages(updatedMessages);
     
+    // If editing last user message, regenerate response
     if (messages[editingIndex].role === "user" && editingIndex === messages.length - 2) {
       const nextMessage = messages[editingIndex + 1];
       if (nextMessage && nextMessage.role === "assistant") {
@@ -323,36 +280,28 @@ function App() {
     setEditText("");
   };
 
-  // Copy message with feedback
-  const copyMessage = (text, index) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 1500);
+  const copyMessage = (text, index) => { 
+    navigator.clipboard.writeText(text); 
+    setCopiedIndex(index); 
+    setTimeout(() => setCopiedIndex(null), 1500); 
   };
-
-  // Text-to-speech
-  const speakText = (text) => {
+  
+  const speakText = (text) => { 
     if (!window.speechSynthesis) {
-      alert("Text-to-speech not supported in your browser");
+      alert("Text-to-speech is not supported in your browser");
       return;
     }
-    
-    if (speechSynthesis.speaking) {
-      speechSynthesis.cancel();
-      return;
-    }
-    
+    if (speechSynthesis.speaking) speechSynthesis.cancel(); 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
     utterance.pitch = 1;
     utterance.rate = 1;
-    window.speechSynthesis.speak(utterance);
+    window.speechSynthesis.speak(utterance); 
   };
-
-  // Delete conversation
-  const deleteConversation = (id, e) => {
-    e.stopPropagation();
-    setConversations(prev => prev.filter(c => c.id !== id));
+  
+  const deleteConversation = (id, e) => { 
+    e.stopPropagation(); 
+    setConversations(prev => prev.filter(c => c.id !== id)); 
     if (currentConversationId === id) {
       if (conversations.length > 1) {
         loadConversation(conversations[1].id);
@@ -361,194 +310,147 @@ function App() {
       }
     }
   };
-
-  // Clear all conversations
-  const clearAllConversations = () => {
-    if (window.confirm("Delete all conversations?")) {
-      setConversations([]);
-      setMessages([]);
-      createNewChat();
-    }
+  
+  const clearAllConversations = () => { 
+    if (window.confirm("Are you sure you want to delete all conversations?")) { 
+      setConversations([]); 
+      setMessages([]); 
+      createNewChat(); 
+    } 
   };
+  
+  const toggleMobileMenu = () => setShowMobileMenu(!showMobileMenu);
 
-  // Mobile menu toggle
-  const toggleMobileMenu = () => {
-    setShowMobileMenu(!showMobileMenu);
-  };
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        sendMessage();
-      }
-      if (e.key === 'Escape') {
-        setEditingIndex(null);
-        setShowMobileMenu(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [input, messages]);
-
-  // Render message content
   const renderMessageContent = (text, index) => {
-    if (editingIndex === index) {
-      return (
-        <div style={styles.editContainer}>
-          <textarea
-            style={styles.editTextarea}
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            autoFocus
-            rows={3}
-          />
-          <div style={styles.editButtons}>
-            <button style={styles.saveButton} onClick={saveEdit}>
-              <BsCheck2 /> Save
-            </button>
-            <button style={styles.cancelButton} onClick={() => setEditingIndex(null)}>
-              <FiX /> Cancel
-            </button>
-          </div>
+    if (editingIndex === index) return (
+      <div className="edit-container">
+        <textarea 
+          className="edit-textarea"
+          value={editText} 
+          onChange={e => setEditText(e.target.value)} 
+          autoFocus 
+          rows={3}
+        />
+        <div className="edit-buttons">
+          <button className="save-button" onClick={saveEdit}>
+            <BsCheck2 /> Save
+          </button>
+          <button className="cancel-button" onClick={() => setEditingIndex(null)}>
+            <FiX /> Cancel
+          </button>
         </div>
-      );
-    }
+      </div>
+    );
     
-    // Simple markdown-like formatting
-    const formattedText = text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code>$1</code>')
-      .replace(/\n/g, '<br />');
-    
-    return <div dangerouslySetInnerHTML={{ __html: formattedText }} />;
+    const formatted = text
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.*?)\*/g, "<em>$1</em>")
+      .replace(/`(.*?)`/g, "<code>$1</code>")
+      .replace(/\n/g, "<br/>");
+    return <div dangerouslySetInnerHTML={{ __html: formatted }}/>;
   };
 
-  // Mobile sidebar/menu
+  // Mobile sidebar component
   const MobileMenu = () => (
-    <div style={{
-      ...styles.mobileMenu,
-      transform: showMobileMenu ? 'translateX(0)' : 'translateX(-100%)'
-    }}>
-      <div style={styles.mobileMenuHeader}>
-        <h3 style={styles.mobileMenuTitle}>Chat History</h3>
-        <button style={styles.closeMobileMenu} onClick={toggleMobileMenu}>
-          <FiX />
+    <>
+      <div 
+        className="mobile-menu-overlay" 
+        style={{ display: showMobileMenu ? 'block' : 'none' }}
+        onClick={toggleMobileMenu}
+      />
+      <div 
+        className="mobile-menu" 
+        style={{ transform: showMobileMenu ? 'translateX(0)' : 'translateX(-100%)' }}
+      >
+        <div className="mobile-menu-header">
+          <h3 className="mobile-menu-title">Chat History</h3>
+          <button className="close-mobile-menu" onClick={toggleMobileMenu}>
+            <FiX />
+          </button>
+        </div>
+        
+        <button className="mobile-new-chat-button" onClick={createNewChat}>
+          <FiPlus /> New Chat
         </button>
-      </div>
-      
-      <button style={styles.mobileNewChatButton} onClick={createNewChat}>
-        <FiPlus /> New Chat
-      </button>
-      
-      <div style={styles.mobileConversationList}>
-        {conversations.map(conversation => (
-          <div
-            key={conversation.id}
-            style={{
-              ...styles.mobileConversationItem,
-              background: currentConversationId === conversation.id 
-                ? (darkMode ? '#2d2d2d' : '#e5e5e5') 
-                : 'transparent'
-            }}
-            onClick={() => loadConversation(conversation.id)}
-          >
-            <BsRobot style={{ marginRight: 10, fontSize: 16 }} />
-            <span style={styles.mobileConversationTitle}>
-              {conversation.title}
-            </span>
-            <FiTrash2 
-              style={styles.mobileDeleteConversation}
-              onClick={(e) => deleteConversation(conversation.id, e)}
-              title="Delete"
-            />
-          </div>
-        ))}
-      </div>
-      
-      <div style={styles.mobileMenuFooter}>
-        <select
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-          style={styles.mobileModelSelect}
-        >
-          {models.map(m => (
-            <option key={m.id} value={m.id}>{m.name}</option>
+        
+        <div className="mobile-conversation-list">
+          {conversations.map(conversation => (
+            <div
+              key={conversation.id}
+              className={`mobile-conversation-item ${currentConversationId === conversation.id ? 'active' : ''}`}
+              onClick={() => loadConversation(conversation.id)}
+            >
+              <BsRobot className="conversation-icon" />
+              <span className="mobile-conversation-title">
+                {conversation.title}
+              </span>
+              <FiTrash2 
+                className="mobile-delete-conversation"
+                onClick={(e) => deleteConversation(conversation.id, e)}
+                title="Delete"
+              />
+            </div>
           ))}
-        </select>
+        </div>
         
-        <button 
-          style={styles.mobileDarkModeButton}
-          onClick={() => setDarkMode(!darkMode)}
-        >
-          {darkMode ? <FiSun /> : <FiMoon />}
-          {darkMode ? " Light Mode" : " Dark Mode"}
-        </button>
-        
-        <button 
-          style={styles.mobileClearButton}
-          onClick={clearAllConversations}
-        >
-          <FiTrash2 /> Clear All
-        </button>
+        <div className="mobile-menu-footer">
+          <select
+            className="mobile-model-select"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+          >
+            {models.map(m => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+          
+          <button 
+            className="mobile-dark-mode-button"
+            onClick={() => setDarkMode(!darkMode)}
+          >
+            {darkMode ? <FiSun /> : <FiMoon />}
+            {darkMode ? " Light Mode" : " Dark Mode"}
+          </button>
+          
+          <button 
+            className="mobile-clear-button"
+            onClick={clearAllConversations}
+          >
+            <FiTrash2 /> Clear All
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 
   return (
-    <div style={{
-      ...styles.container,
-      background: darkMode ? '#343541' : '#ffffff',
-      color: darkMode ? '#ffffff' : '#000000'
-    }}>
-      {/* Mobile Menu Overlay */}
-      {isMobile && (
-        <>
-          <MobileMenu />
-          {showMobileMenu && (
-            <div 
-              style={styles.mobileMenuOverlay}
-              onClick={toggleMobileMenu}
-            />
-          )}
-        </>
-      )}
+    <div className={`app-container ${darkMode ? 'dark' : 'light'}`}>
+      {/* Mobile Menu */}
+      {isMobile && <MobileMenu />}
 
       {/* Desktop Sidebar */}
       {!isMobile && sidebarOpen && (
-        <div style={{
-          ...styles.sidebar,
-          background: darkMode ? '#202123' : '#f7f7f8',
-          borderRight: `1px solid ${darkMode ? '#4d4d4f' : '#e5e5e5'}`
-        }}>
-          <div style={styles.sidebarHeader}>
-            <button style={styles.newChatButton} onClick={createNewChat}>
+        <div className="sidebar">
+          <div className="sidebar-header">
+            <button className="new-chat-button" onClick={createNewChat}>
               <FiPlus /> New chat
             </button>
-            <button style={styles.closeSidebar} onClick={() => setSidebarOpen(false)}>
+            <button className="close-sidebar" onClick={() => setSidebarOpen(false)}>
               <FiX />
             </button>
           </div>
           
-          <div style={styles.conversationList}>
+          <div className="conversation-list">
             {conversations.map(conversation => (
               <div
                 key={conversation.id}
-                className="conversation-item"
-                style={{
-                  ...styles.conversationItem,
-                  background: currentConversationId === conversation.id 
-                    ? (darkMode ? '#2d2d2d' : '#e5e5e5') 
-                    : 'transparent'
-                }}
+                className={`conversation-item ${currentConversationId === conversation.id ? 'active' : ''}`}
                 onClick={() => loadConversation(conversation.id)}
               >
-                <BsRobot style={{ marginRight: 10, fontSize: 14 }} />
-                <span style={styles.conversationTitle}>{conversation.title}</span>
+                <BsRobot className="conversation-icon" />
+                <span className="conversation-title">{conversation.title}</span>
                 <FiTrash2 
-                  style={styles.deleteConversation}
+                  className="delete-conversation"
                   onClick={(e) => deleteConversation(conversation.id, e)}
                   title="Delete conversation"
                 />
@@ -556,16 +458,12 @@ function App() {
             ))}
           </div>
           
-          <div style={styles.sidebarFooter}>
-            <div style={styles.modelSelector}>
+          <div className="sidebar-footer">
+            <div className="model-selector">
               <select
+                className="model-select"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                style={{
-                  ...styles.modelSelect,
-                  background: darkMode ? '#40414f' : '#ffffff',
-                  color: darkMode ? '#ffffff' : '#000000'
-                }}
               >
                 {models.map(m => (
                   <option key={m.id} value={m.id}>
@@ -576,66 +474,60 @@ function App() {
             </div>
             
             <button 
-              style={styles.darkModeButton}
+              className="dark-mode-button"
               onClick={() => setDarkMode(!darkMode)}
             >
               {darkMode ? <FiSun /> : <FiMoon />}
               {darkMode ? " Light Mode" : " Dark Mode"}
             </button>
             
-            <button style={styles.clearButton} onClick={clearAllConversations}>
+            <button className="clear-button" onClick={clearAllConversations}>
               <FiTrash2 /> Clear All
             </button>
           </div>
         </div>
       )}
 
-      {/* Main chat area */}
-      <div style={styles.mainContent}>
+      {/* Main Chat Area */}
+      <div className="main-content">
         {/* Header */}
-        <div style={{
-          ...styles.header,
-          borderBottom: `1px solid ${darkMode ? '#4d4d4f' : '#e5e5e5'}`,
-          height: isMobile ? '50px' : '60px',
-          padding: isMobile ? '10px 15px' : '16px'
-        }}>
+        <div className="header">
           {isMobile ? (
             <>
-              <button style={styles.mobileMenuButton} onClick={toggleMobileMenu}>
+              <button className="mobile-menu-button" onClick={toggleMobileMenu}>
                 <FiMenu />
               </button>
-              <div style={styles.mobileHeaderCenter}>
-                <span style={styles.mobileTitle}>Adeel Agent</span>
-                <div style={styles.mobileModelBadge}>
+              <div className="mobile-header-center">
+                <span className="mobile-title">Adeel Agent</span>
+                <div className="mobile-model-badge">
                   {models.find(m => m.id === model)?.icon}
                 </div>
               </div>
               <button 
-                style={styles.mobileIconButton}
+                className="mobile-icon-button"
                 onClick={() => setDarkMode(!darkMode)}
               >
-                {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
+                {darkMode ? <FiSun /> : <FiMoon />}
               </button>
             </>
           ) : (
             <>
               {!sidebarOpen && (
-                <button style={styles.menuButton} onClick={() => setSidebarOpen(true)}>
+                <button className="menu-button" onClick={() => setSidebarOpen(true)}>
                   <FiMenu />
                 </button>
               )}
               
-              <div style={styles.headerCenter}>
-                <div style={styles.modelBadge}>
+              <div className="header-center">
+                <div className="model-badge">
                   {models.find(m => m.id === model)?.icon}
-                  <span style={{ marginLeft: 8 }}>{models.find(m => m.id === model)?.name}</span>
+                  <span>{models.find(m => m.id === model)?.name}</span>
                 </div>
               </div>
               
-              <div style={styles.headerRight}>
+              <div className="header-right">
                 <button 
                   className="icon-button"
-                  style={styles.iconButton}
                   onClick={() => setDarkMode(!darkMode)}
                   title={darkMode ? "Light mode" : "Dark mode"}
                 >
@@ -643,7 +535,6 @@ function App() {
                 </button>
                 <button 
                   className="icon-button"
-                  style={styles.iconButton}
                   onClick={regenerateResponse}
                   disabled={loading || messages.length < 2}
                   title="Regenerate response"
@@ -655,44 +546,32 @@ function App() {
           )}
         </div>
 
-        {/* Chat messages */}
-        <div className="chat-container" style={styles.chatContainer}>
+        {/* Chat Messages */}
+        <div className="chat-container">
           {messages.map((msg, i) => (
             <div
-              key={i}
-              className="message-wrapper"
-              style={{
-                ...styles.messageWrapper,
-                background: msg.role === 'assistant' 
-                  ? (darkMode ? '#444654' : '#f7f7f8') 
-                  : 'transparent'
-              }}
+              key={msg.id}
+              className={`message-wrapper ${msg.role === 'assistant' ? 'assistant' : 'user'}`}
             >
-              <div className="message-container" style={styles.messageContainer}>
-                <div style={styles.avatar}>
+              <div className="message-container">
+                <div className="avatar">
                   {msg.role === 'user' ? (
-                    <div className="avatar-icon" style={{
-                      ...styles.avatarIcon,
-                      background: '#0b5cff'
-                    }}>U</div>
+                    <div className="avatar-icon user-avatar">U</div>
                   ) : (
-                    <div className="avatar-icon" style={{
-                      ...styles.avatarIcon,
-                      background: '#10A37F'
-                    }}>
+                    <div className="avatar-icon assistant-avatar">
                       <BsRobot />
                     </div>
                   )}
                 </div>
                 
-                <div style={styles.messageContent}>
-                  <div className="message-content" style={styles.messageText}>
+                <div className="message-content">
+                  <div className="message-text">
                     {renderMessageContent(msg.text, i)}
                   </div>
                   
-                  {/* Message actions */}
-                  <div className="message-actions" style={styles.messageActions}>
-                    <span className="timestamp" style={styles.timestamp}>
+                  {/* Message Actions */}
+                  <div className="message-actions">
+                    <span className="timestamp">
                       {new Date(msg.timestamp).toLocaleTimeString([], { 
                         hour: '2-digit', 
                         minute: '2-digit' 
@@ -700,10 +579,9 @@ function App() {
                       {msg.edited && " (edited)"}
                     </span>
                     
-                    <div style={styles.actionButtons}>
+                    <div className="action-buttons">
                       <button
                         className="action-button"
-                        style={styles.actionButton}
                         onClick={() => speakText(msg.text)}
                         title="Read aloud"
                       >
@@ -713,7 +591,6 @@ function App() {
                       {msg.role === 'user' && (
                         <button
                           className="action-button"
-                          style={styles.actionButton}
                           onClick={() => startEdit(i)}
                           title="Edit message"
                         >
@@ -723,14 +600,10 @@ function App() {
                       
                       <button
                         className="action-button"
-                        style={styles.actionButton}
                         onClick={() => copyMessage(msg.text, i)}
                         title="Copy message"
                       >
-                        {copiedIndex === i ? 
-                          <BsCheck2 /> : 
-                          <FiCopy />
-                        }
+                        {copiedIndex === i ? <BsCheck2 /> : <FiCopy />}
                       </button>
                     </div>
                   </div>
@@ -740,19 +613,16 @@ function App() {
           ))}
           
           {loading && (
-            <div style={styles.typingIndicator}>
-              <div style={styles.avatar}>
-                <div className="avatar-icon" style={{
-                  ...styles.avatarIcon,
-                  background: '#10A37F'
-                }}>
+            <div className="typing-indicator">
+              <div className="avatar">
+                <div className="avatar-icon assistant-avatar">
                   <BsRobot />
                 </div>
               </div>
-              <div style={styles.typingDots}>
-                <div className="typing-dot" style={styles.typingDot} />
-                <div className="typing-dot" style={styles.typingDot} />
-                <div className="typing-dot" style={styles.typingDot} />
+              <div className="typing-dots">
+                <div className="typing-dot" />
+                <div className="typing-dot" />
+                <div className="typing-dot" />
               </div>
             </div>
           )}
@@ -760,17 +630,13 @@ function App() {
           <div ref={chatEndRef} />
         </div>
 
-        {/* Input area */}
-        <div className="input-wrapper" style={styles.inputWrapper}>
-          <div style={styles.inputArea}>
-            <div style={styles.inputControls}>
+        {/* Input Area */}
+        <div className="input-wrapper">
+          <div className="input-area">
+            <div className="input-controls">
               {!isMobile && (
                 <button
-                  className="voice-button"
-                  style={{
-                    ...styles.voiceButton,
-                    background: isListening ? '#ff4444' : 'transparent'
-                  }}
+                  className={`voice-button ${isListening ? 'listening' : ''}`}
                   onClick={toggleVoiceInput}
                   title={isListening ? "Stop listening" : "Voice input"}
                 >
@@ -781,12 +647,6 @@ function App() {
               <textarea
                 ref={textAreaRef}
                 className="textarea"
-                style={{
-                  ...styles.textarea,
-                  background: darkMode ? '#40414f' : '#ffffff',
-                  color: darkMode ? '#ffffff' : '#000000',
-                  border: `1px solid ${darkMode ? '#565869' : '#c5c5d2'}`
-                }}
                 placeholder="Message Adeel Agent..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -799,33 +659,24 @@ function App() {
                 rows={1}
               />
               
-              <div style={styles.sendButtonContainer}>
+              <div className="send-button-container">
                 {isMobile && (
                   <button
-                    className="mobile-voice-button"
-                    style={{
-                      ...styles.mobileVoiceButton,
-                      background: isListening ? '#ff4444' : 'transparent'
-                    }}
+                    className={`mobile-voice-button ${isListening ? 'listening' : ''}`}
                     onClick={toggleVoiceInput}
                     title={isListening ? "Stop listening" : "Voice input"}
                   >
-                    {isListening ? <FiMicOff size={18} /> : <FiMic size={18} />}
+                    {isListening ? <FiMicOff /> : <FiMic />}
                   </button>
                 )}
                 
                 <button
                   className="send-button"
-                  style={{
-                    ...styles.sendButton,
-                    opacity: input.trim() ? 1 : 0.5,
-                    cursor: input.trim() ? 'pointer' : 'default'
-                  }}
                   onClick={sendMessage}
                   disabled={!input.trim() || loading}
                 >
                   {loading ? (
-                    <div className="spinner" style={styles.spinner} />
+                    <div className="spinner" />
                   ) : (
                     <FiSend />
                   )}
@@ -834,8 +685,10 @@ function App() {
             </div>
             
             {!isMobile && (
-              <div className="input-footer" style={styles.inputFooter}>
-                
+              <div className="input-footer">
+                <span className="disclaimer">
+                  Adeel Agent can make mistakes. Consider checking important information.
+                </span>
               </div>
             )}
           </div>
@@ -844,546 +697,5 @@ function App() {
     </div>
   );
 }
-
-// Simplified inline styles without media queries
-const styles = {
-  container: {
-    display: 'flex',
-    height: '100vh',
-    width: '100vw',
-    overflow: 'hidden',
-  },
-  // Mobile Menu Styles
-  mobileMenu: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '280px',
-    height: '100vh',
-    background: '#202123',
-    zIndex: 1000,
-    transition: 'transform 0.3s ease',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  mobileMenuOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0,0,0,0.5)',
-    zIndex: 999,
-  },
-  mobileMenuHeader: {
-    padding: '20px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottom: '1px solid #4d4d4f',
-  },
-  mobileMenuTitle: {
-    margin: 0,
-    fontSize: '18px',
-    fontWeight: '600',
-  },
-  closeMobileMenu: {
-    background: 'transparent',
-    border: 'none',
-    color: '#ffffff',
-    fontSize: '24px',
-    cursor: 'pointer',
-    padding: '5px',
-  },
-  mobileNewChatButton: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '20px',
-    padding: '12px',
-    background: 'linear-gradient(135deg, #0b5cff 0%, #0b5cffcc 100%)',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    gap: '8px',
-  },
-  mobileConversationList: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: '0 20px',
-  },
-  mobileConversationItem: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '12px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    marginBottom: '8px',
-    fontSize: '14px',
-    transition: 'background 0.2s',
-  },
-  mobileConversationTitle: {
-    flex: 1,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    fontSize: '13px',
-  },
-  mobileDeleteConversation: {
-    opacity: 0.7,
-    cursor: 'pointer',
-    padding: '4px',
-    fontSize: '16px',
-  },
-  mobileMenuFooter: {
-    padding: '20px',
-    borderTop: '1px solid #4d4d4f',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-  },
-  mobileModelSelect: {
-    width: '100%',
-    padding: '10px',
-    borderRadius: '6px',
-    border: '1px solid #565869',
-    background: '#40414f',
-    color: '#ffffff',
-    fontSize: '14px',
-    outline: 'none',
-  },
-  mobileDarkModeButton: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    padding: '10px',
-    background: '#40414f',
-    color: '#ffffff',
-    border: '1px solid #565869',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
-  mobileClearButton: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    padding: '10px',
-    background: 'transparent',
-    color: '#ff4444',
-    border: '1px solid #ff4444',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
-  // Desktop Sidebar
-  sidebar: {
-    width: '260px',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  sidebarHeader: {
-    padding: '16px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  newChatButton: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '12px',
-    background: 'linear-gradient(135deg, #0b5cff 0%, #0b5cffcc 100%)',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    flex: 1,
-    marginRight: '8px',
-    gap: '8px',
-  },
-  closeSidebar: {
-    background: 'transparent',
-    border: 'none',
-    color: 'inherit',
-    cursor: 'pointer',
-    fontSize: '20px',
-    padding: '8px',
-  },
-  conversationList: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: '8px',
-  },
-  conversationItem: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '12px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    marginBottom: '4px',
-    fontSize: '14px',
-  },
-  conversationTitle: {
-    flex: 1,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    fontSize: '13px',
-  },
-  deleteConversation: {
-    opacity: 0,
-    transition: 'opacity 0.2s',
-    cursor: 'pointer',
-    padding: '4px',
-    fontSize: '16px',
-  },
-  sidebarFooter: {
-    padding: '16px',
-    borderTop: '1px solid #4d4d4f',
-  },
-  modelSelector: {
-    marginBottom: '16px',
-  },
-  modelSelect: {
-    width: '100%',
-    padding: '10px',
-    borderRadius: '6px',
-    border: '1px solid #565869',
-    fontSize: '14px',
-    outline: 'none',
-  },
-  darkModeButton: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    width: '100%',
-    padding: '10px',
-    background: 'transparent',
-    color: 'inherit',
-    border: '1px solid #565869',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    marginBottom: '10px',
-  },
-  clearButton: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    width: '100%',
-    padding: '10px',
-    background: 'transparent',
-    color: '#ff4444',
-    border: '1px solid #ff4444',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
-  // Main Content
-  mainContent: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    boxSizing: 'border-box',
-    flexShrink: 0,
-  },
-  mobileMenuButton: {
-    background: 'transparent',
-    border: 'none',
-    color: 'inherit',
-    cursor: 'pointer',
-    fontSize: '20px',
-    padding: '8px',
-    marginRight: '10px',
-  },
-  mobileHeaderCenter: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '10px',
-  },
-  mobileTitle: {
-    fontSize: '16px',
-    fontWeight: '600',
-  },
-  mobileModelBadge: {
-    background: '#10A37F',
-    color: 'white',
-    borderRadius: '50%',
-    width: '24px',
-    height: '24px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '12px',
-  },
-  mobileIconButton: {
-    background: 'transparent',
-    border: 'none',
-    color: 'inherit',
-    cursor: 'pointer',
-    padding: '8px',
-  },
-  menuButton: {
-    background: 'transparent',
-    border: 'none',
-    color: 'inherit',
-    cursor: 'pointer',
-    fontSize: '20px',
-    padding: '8px',
-    marginRight: '16px',
-  },
-  headerCenter: {
-    flex: 1,
-    display: 'flex',
-    justifyContent: 'center',
-  },
-  modelBadge: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '6px 12px',
-    background: '#10A37F',
-    color: 'white',
-    borderRadius: '20px',
-    fontSize: '14px',
-    fontWeight: '500',
-  },
-  headerRight: {
-    display: 'flex',
-    gap: '8px',
-  },
-  iconButton: {
-    background: 'transparent',
-    border: 'none',
-    color: 'inherit',
-    cursor: 'pointer',
-    fontSize: '18px',
-    padding: '8px',
-    borderRadius: '6px',
-  },
-  chatContainer: {
-    flex: 1,
-    overflowY: 'auto',
-    WebkitOverflowScrolling: 'touch',
-  },
-  messageWrapper: {
-    padding: '20px 0',
-  },
-  messageContainer: {
-    margin: '0 auto',
-    display: 'flex',
-    gap: '20px',
-    maxWidth: '48rem',
-  },
-  avatar: {
-    flexShrink: 0,
-  },
-  avatarIcon: {
-    width: '36px',
-    height: '36px',
-    borderRadius: '4px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'white',
-    fontSize: '14px',
-    fontWeight: 'bold',
-  },
-  messageContent: {
-    flex: 1,
-    minWidth: 0,
-  },
-  messageText: {
-    fontSize: '16px',
-    lineHeight: '1.6',
-  },
-  messageActions: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: '12px',
-    opacity: 0,
-    transition: 'opacity 0.2s',
-  },
-  timestamp: {
-    fontSize: '12px',
-    opacity: 0.6,
-  },
-  actionButtons: {
-    display: 'flex',
-    gap: '8px',
-  },
-  actionButton: {
-    background: 'transparent',
-    border: 'none',
-    color: 'inherit',
-    cursor: 'pointer',
-    fontSize: '16px',
-    padding: '4px',
-    borderRadius: '4px',
-    opacity: 0.6,
-  },
-  editContainer: {
-    marginTop: '8px',
-  },
-  editTextarea: {
-    width: '100%',
-    padding: '12px',
-    borderRadius: '6px',
-    border: '1px solid #565869',
-    background: 'transparent',
-    color: 'inherit',
-    fontSize: '16px',
-    lineHeight: '1.6',
-    resize: 'vertical',
-    minHeight: '80px',
-    marginBottom: '12px',
-    outline: 'none',
-  },
-  editButtons: {
-    display: 'flex',
-    gap: '8px',
-  },
-  saveButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '8px 16px',
-    background: '#10A37F',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
-  cancelButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '8px 16px',
-    background: 'transparent',
-    color: 'inherit',
-    border: '1px solid #565869',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
-  typingIndicator: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '20px',
-    margin: '0 auto',
-    maxWidth: '48rem',
-    padding: '20px 0',
-  },
-  typingDots: {
-    display: 'flex',
-    gap: '4px',
-  },
-  typingDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    background: '#10A37F',
-    animation: 'typing 1.4s infinite ease-in-out',
-  },
-  inputWrapper: {
-    borderTop: '1px solid #4d4d4f',
-    flexShrink: 0,
-    padding: '20px',
-  },
-  inputArea: {
-    margin: '0 auto',
-    maxWidth: '48rem',
-  },
-  inputControls: {
-    display: 'flex',
-    alignItems: 'flex-end',
-    gap: '12px',
-  },
-  voiceButton: {
-    background: 'transparent',
-    border: 'none',
-    color: 'inherit',
-    cursor: 'pointer',
-    fontSize: '20px',
-    padding: '12px',
-    borderRadius: '6px',
-    flexShrink: 0,
-  },
-  mobileVoiceButton: {
-    background: 'transparent',
-    border: 'none',
-    color: 'inherit',
-    cursor: 'pointer',
-    fontSize: '18px',
-    padding: '8px',
-    borderRadius: '50%',
-    flexShrink: 0,
-  },
-  textarea: {
-    flex: 1,
-    resize: 'none',
-    outline: 'none',
-    fontFamily: 'inherit',
-    lineHeight: '1.6',
-    padding: '12px',
-    borderRadius: '12px',
-    fontSize: '16px',
-    minHeight: '24px',
-    maxHeight: '120px',
-  },
-  sendButtonContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  sendButton: {
-    background: 'linear-gradient(135deg, #0b5cff 0%, #0b5cffcc 100%)',
-    border: 'none',
-    color: 'white',
-    cursor: 'pointer',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '20px',
-    padding: '12px',
-    width: '48px',
-    height: '48px',
-  },
-  spinner: {
-    width: '20px',
-    height: '20px',
-    border: '2px solid rgba(255,255,255,0.3)',
-    borderTop: '2px solid white',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-  },
-  inputFooter: {
-    marginTop: '12px',
-    textAlign: 'center',
-  },
-  disclaimer: {
-    fontSize: '12px',
-    opacity: 0.6,
-  },
-};
 
 export default App;
